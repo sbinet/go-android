@@ -60,7 +60,8 @@ func (dev *Device) CreateCaptureRequest(id TemplateKind) (*CaptureRequest, error
 	return req, nil
 }
 
-func (dev *Device) CreateCaptureSession(outputs *CaptureSessionOutputContainer) (*CaptureSession, error) {
+func (dev *Device) CreateCaptureSession(outputs *CaptureSessionOutputContainer, cbks CaptureSessionCaptureCallbacks) (*CaptureSession, error) {
+	// FIXME(sbinet): properly propagate callbacks
 	var (
 		sess *CaptureSession
 		ok   = C.ACameraDevice_createCaptureSession(dev, outputs, nil, &sess)

@@ -43,3 +43,15 @@ type CaptureSessionStateCallbacks struct {
 }
 
 type CaptureFailure = C.ACameraCaptureFailure
+
+type CaptureSessionCaptureCallbacks struct {
+	OnCaptureStarted    func(sess *CaptureSession, req *CaptureRequest, timestamp int64)
+	OnCaptureProgressed func(sess *CaptureSession, req *CaptureRequest, res *Metadata)
+	OnCaptureCompleted  func(sess *CaptureSession, req *CaptureRequest, res *Metadata)
+	OnCaptureFailed     func(sess *CaptureSession, req *CaptureRequest, err *CaptureFailure)
+
+	OnCaptureSequenceCompleted func(sess *CaptureSession, id int, frame int64)
+	OnCaptureSequenceAborted   func(sess *CaptureSession, id int)
+
+	OnCaptureBufferLost func(sess *CaptureSession, req *CaptureRequest, win *WindowType, frame int64)
+}
