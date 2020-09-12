@@ -11,7 +11,10 @@ import (
 	_ "gioui.org/app/permission/camera"
 	_ "gioui.org/app/permission/storage"
 	"github.com/sbinet/go-android/camera"
+	"github.com/sbinet/go-android/media"
 )
+
+var img media.Image // FIXME(sbinet)
 
 func main() {
 	mgr := camera.NewManager()

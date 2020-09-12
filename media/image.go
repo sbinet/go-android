@@ -4,137 +4,145 @@
 
 package media
 
-//#include <media/NdkImageReader.h>
-//
-//extern
-//void
-//cbkImageReader(void *context, AImageReader *r);
-//
+//#include <media/NdkImage.h>
 import "C"
 
 import (
+	"reflect"
 	"unsafe"
-
-	"github.com/sbinet/go-android"
 )
 
 type ImageFormat int32
 
 const (
-	FormatJPEG = ImageFormat(C.AIMAGE_FORMAT_JPEG)
+	FormatRGBA8888        = ImageFormat(C.AIMAGE_FORMAT_RGBA_8888)
+	FormatRGBX8888        = ImageFormat(C.AIMAGE_FORMAT_RGBX_8888)
+	FormatRGB888          = ImageFormat(C.AIMAGE_FORMAT_RGB_888)
+	FormatRGB565          = ImageFormat(C.AIMAGE_FORMAT_RGB_565)
+	FormatRGBAFP16        = ImageFormat(C.AIMAGE_FORMAT_RGBA_FP16)
+	FormatYUV420888       = ImageFormat(C.AIMAGE_FORMAT_YUV_420_888)
+	FormatJPEG            = ImageFormat(C.AIMAGE_FORMAT_JPEG)
+	FormatRAW16           = ImageFormat(C.AIMAGE_FORMAT_RAW16)
+	FormatRAWPrivate      = ImageFormat(C.AIMAGE_FORMAT_RAW_PRIVATE)
+	FormatRAW10           = ImageFormat(C.AIMAGE_FORMAT_RAW10)
+	FormatRAW12           = ImageFormat(C.AIMAGE_FORMAT_RAW12)
+	FormatDepth16         = ImageFormat(C.AIMAGE_FORMAT_DEPTH16)
+	FormatDepthPointCloud = ImageFormat(C.AIMAGE_FORMAT_DEPTH_POINT_CLOUD)
+	FormatPrivate         = ImageFormat(C.AIMAGE_FORMAT_PRIVATE)
+	FormatY8              = ImageFormat(C.AIMAGE_FORMAT_Y8)
+	FormatHEIC            = ImageFormat(C.AIMAGE_FORMAT_HEIC)
+	FormatDepthJPEG       = ImageFormat(C.AIMAGE_FORMAT_DEPTH_JPEG)
 )
 
 type Image = C.AImage
 
-type ImageReader = C.AImageReader
+func (img *Image) Delete() {
+	C.AImage_delete(img)
+}
 
-func NewImageReader(width, height int, fmt ImageFormat, maxImages int32) (*ImageReader, error) {
+func (img *Image) Width() (int32, error) {
 	var (
-		r  *ImageReader
-		ok = C.AImageReader_new(
-			C.int32_t(width), C.int32_t(height),
-			C.int32_t(fmt),
-			C.int32_t(maxImages),
-			&r,
-		)
+		v   C.int32_t
+		ok  = C.AImage_getWidth(img, &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int32(v), nil
+}
+
+func (img *Image) Height() (int32, error) {
+	var (
+		v   C.int32_t
+		ok  = C.AImage_getHeight(img, &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int32(v), nil
+}
+
+func (img *Image) Format() (ImageFormat, error) {
+	var (
+		v   C.int32_t
+		ok  = C.AImage_getFormat(img, &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return ImageFormat(v), nil
+}
+
+func (img *Image) Timestamp() (int64, error) {
+	var (
+		v   C.int64_t
+		ok  = C.AImage_getTimestamp(img, &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int64(v), nil
+}
+
+func (img *Image) NumberOfPlanes() (int32, error) {
+	var (
+		v   C.int32_t
+		ok  = C.AImage_getNumberOfPlanes(img, &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int32(v), nil
+}
+
+func (img *Image) PlanePixelStride(plane int) (int32, error) {
+	var (
+		v   C.int32_t
+		ok  = C.AImage_getPlanePixelStride(img, C.int(plane), &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int32(v), nil
+}
+
+func (img *Image) PlaneRowStride(plane int) (int32, error) {
+	var (
+		v   C.int32_t
+		ok  = C.AImage_getPlaneRowStride(img, C.int(plane), &v)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return 0, err
+	}
+	return int32(v), nil
+}
+
+func (img *Image) PlaneData(plane int) ([]byte, error) {
+	var (
+		n   C.int32_t
+		v   *C.uint8_t
+		ok  = C.AImage_getPlaneData(img, C.int(plane), &v, &n)
 		err = Status(ok)
 	)
 	if err != StatusOk {
 		return nil, err
 	}
-
-	return r, nil
-}
-
-func (r *ImageReader) Delete() {
-	if r == nil {
-		return
-	}
-	C.AImageReader_delete(r)
-	r = nil
-}
-
-func (r *ImageReader) Width() int32 {
 	var (
-		v C.int32_t
-		_ = C.AImageReader_getWidth(r, &v)
+		out = make([]byte, n)
+		raw []byte
+		hdr = (*reflect.SliceHeader)((unsafe.Pointer(&raw)))
 	)
-	return int32(v)
-}
+	hdr.Len = int(n)
+	hdr.Cap = int(n)
+	hdr.Data = uintptr(unsafe.Pointer(v))
 
-func (r *ImageReader) Height() int32 {
-	var (
-		v C.int32_t
-		_ = C.AImageReader_getHeight(r, &v)
-	)
-	return int32(v)
-}
-
-func (r *ImageReader) Format() ImageFormat {
-	var (
-		v C.int32_t
-		_ = C.AImageReader_getFormat(r, &v)
-	)
-	return ImageFormat(v)
-}
-
-func (r *ImageReader) MaxImages() int32 {
-	var (
-		v C.int32_t
-		_ = C.AImageReader_getMaxImages(r, &v)
-	)
-	return int32(v)
-}
-
-func (r *ImageReader) SetImageListener(cbk func(r *ImageReader)) error {
-	id := unsafe.Pointer(&cbk)
-	imageCbks[id] = cbk
-
-	var (
-		lis = C.AImageReader_ImageListener{
-			context:          id,
-			onImageAvailable: (C.AImageReader_ImageCallback)(unsafe.Pointer(C.cbkImageReader)),
-		}
-		ok  = C.AImageReader_setImageListener(r, &lis)
-		err = Status(ok)
-	)
-	if err != StatusOk {
-		return err
-	}
-	return nil
-}
-
-var (
-	imageCbks = make(map[unsafe.Pointer]func(r *ImageReader))
-)
-
-//export goImageReaderCbk
-func goImageReaderCbk(ctx unsafe.Pointer, r *C.AImageReader) {
-	cbk := imageCbks[ctx]
-	cbk(r)
-}
-
-func (r *ImageReader) Window() (*android.NativeWindow, error) {
-	var (
-		win *android.NativeWindow
-		ok  = C.AImageReader_getWindow(r, (**C.ANativeWindow)(unsafe.Pointer(&win)))
-		err = Status(ok)
-	)
-	if err != StatusOk {
-		return nil, err
-	}
-	return win, nil
-}
-
-func (r *ImageReader) AcquireNextImage() (*Image, error) {
-	var (
-		img *Image
-		ok  = C.AImageReader_acquireNextImage(r, &img)
-		err = Status(ok)
-	)
-	if err != StatusOk {
-		return nil, err
-	}
-
-	return img, nil
+	copy(out, raw)
+	return out, nil
 }
