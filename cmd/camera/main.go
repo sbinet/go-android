@@ -39,6 +39,13 @@ func main() {
 			log.Printf("entry: %#v", entry)
 		}
 	}
+
+	id, err := backFacingCameraID(mgr)
+	if err != nil {
+		log.Fatalf("could not find a back-facing lens: %+v", err)
+	}
+	log.Printf("back-facing camera: %v", id)
+
 }
 
 func backFacingCameraID(mgr *camera.Manager) (camera.CameraID, error) {

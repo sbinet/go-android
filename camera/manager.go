@@ -4,6 +4,7 @@
 
 package camera
 
+//#include <camera/NdkCameraDevice.h>
 //#include <camera/NdkCameraManager.h>
 //#include <camera/NdkCameraMetadataTags.h>
 //#include <camera/NdkCameraMetadata.h>
@@ -15,8 +16,20 @@ package camera
 //chars_at(const char** arr, int i) {
 //	return arr[i];
 //}
+//
+//void
+//onDisconnected(void* context, ACameraDevice* device) {
+//}
+//
+//void
+//onError(void* context, ACameraDevice* device, int error) {
+//}
+//
 import "C"
-import "unsafe"
+
+import (
+	"unsafe"
+)
 
 // Manager provides access to the camera service.
 type Manager struct {
@@ -70,4 +83,26 @@ func (mgr *Manager) CameraCharacteristics(id CameraID) (Metadata, error) {
 	}
 
 	return md, nil
+}
+
+func (mgr *Manager) Open(id CameraID) (Device, error) {
+
+	var (
+		dev Device
+		cbk = C.ACameraDevice_StateCallbacks{
+			context:        nil,
+			onDisconnected: (C.ACameraDevice_StateCallback)(unsafe.Pointer(C.onDisconnected)),
+			onError:        (C.ACameraDevice_ErrorStateCallback)(unsafe.Pointer(C.onError)),
+		}
+		cid = C.CString(string(id))
+		ok  = C.ACameraManager_openCamera(mgr.c, cid, &cbk, &dev.c)
+		err = Status(ok)
+	)
+	defer C.free(unsafe.Pointer(cid))
+
+	if err != StatusOk {
+		return dev, err
+	}
+
+	return dev, nil
 }

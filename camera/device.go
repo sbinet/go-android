@@ -5,7 +5,6 @@
 package camera
 
 //#include <camera/NdkCameraDevice.h>
-//
 import "C"
 
 type CameraID string
