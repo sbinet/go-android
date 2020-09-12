@@ -4,6 +4,8 @@
 
 package camera
 
+//#cgo CFLAGS: -I/opt/android-ndk/sysroot/usr/include
+//
 //#cgo CFLAGS: -Werror
 //#cgo LDFLAGS: -lcamera2ndk
 //
@@ -11,4 +13,5 @@ package camera
 //#cgo arm64 LDFLAGS: -L/opt/android-ndk/platforms/android-28/arch-arm64/usr/lib
 //#cgo 386   LDFLAGS: -L/opt/android-ndk/platforms/android-28/arch-x86/usr/lib
 //#cgo amd64 LDFLAGS: -L/opt/android-ndk/platforms/android-28/arch-x86_64/usr/lib64
+//
 import "C"
