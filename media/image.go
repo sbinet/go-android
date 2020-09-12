@@ -5,7 +5,16 @@
 package media
 
 //#include <media/NdkImageReader.h>
+//
+//extern
+//void
+//cbkImageReader(void *context, AImageReader *r);
+//
 import "C"
+
+import (
+	"unsafe"
+)
 
 type ImageFormat int32
 
@@ -17,7 +26,7 @@ type ImageReader struct {
 	c *C.AImageReader
 }
 
-func NewImageReader(width, height int, fmt ImageFormat, maxImages int32) (*ImageReader, error) {
+func NewImageReader(width, height int, fmt ImageFormat, maxImages int32) (ImageReader, error) {
 	var (
 		r  ImageReader
 		ok = C.AImageReader_new(
@@ -29,15 +38,44 @@ func NewImageReader(width, height int, fmt ImageFormat, maxImages int32) (*Image
 		err = Status(ok)
 	)
 	if err != StatusOk {
-		return nil, err
+		return r, err
 	}
 
-	return &r, nil
+	return r, nil
 }
 
 func (r *ImageReader) Delete() {
-	if r.c != nil {
-		C.AImageReader_delete(r.c)
-		r.c = nil
+	if r.c == nil {
+		return
 	}
+	C.AImageReader_delete(r.c)
+	r.c = nil
+}
+
+func (r *ImageReader) SetImageListener(cbk func(r ImageReader)) error {
+	id := unsafe.Pointer(&cbk)
+	imageCbks[id] = cbk
+
+	var (
+		lis = C.AImageReader_ImageListener{
+			context:          id,
+			onImageAvailable: (C.AImageReader_ImageCallback)(unsafe.Pointer(C.cbkImageReader)),
+		}
+		ok  = C.AImageReader_setImageListener(r.c, &lis)
+		err = Status(ok)
+	)
+	if err != StatusOk {
+		return err
+	}
+	return nil
+}
+
+var (
+	imageCbks = make(map[unsafe.Pointer]func(r ImageReader))
+)
+
+//export goImageReaderCbk
+func goImageReaderCbk(ctx unsafe.Pointer, r *C.AImageReader) {
+	cbk := imageCbks[ctx]
+	cbk(ImageReader{c: r})
 }
