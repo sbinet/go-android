@@ -32,28 +32,24 @@ import (
 )
 
 // Manager provides access to the camera service.
-type Manager struct {
-	c *C.ACameraManager
-}
+type Manager = C.ACameraManager
 
 // NewManager creates a new camera manager.
 func NewManager() *Manager {
-	return &Manager{
-		c: C.ACameraManager_create(),
-	}
+	return C.ACameraManager_create()
 }
 
 func (mgr *Manager) Delete() {
-	if mgr.c != nil {
-		C.ACameraManager_delete(mgr.c)
+	if mgr != nil {
+		C.ACameraManager_delete(mgr)
 	}
-	mgr.c = nil
+	mgr = nil
 }
 
 func (mgr *Manager) CameraIDs() ([]CameraID, error) {
 	var (
 		lst *C.ACameraIdList
-		ok  = C.ACameraManager_getCameraIdList(mgr.c, &lst)
+		ok  = C.ACameraManager_getCameraIdList(mgr, &lst)
 		err = Status(ok)
 	)
 	if err != StatusOk {
@@ -73,7 +69,7 @@ func (mgr *Manager) CameraCharacteristics(id CameraID) (Metadata, error) {
 	var (
 		md  Metadata
 		cid = C.CString(string(id))
-		ok  = C.ACameraManager_getCameraCharacteristics(mgr.c, cid, &md.c)
+		ok  = C.ACameraManager_getCameraCharacteristics(mgr, cid, &md.c)
 		err = Status(ok)
 	)
 	defer C.free(unsafe.Pointer(cid))
@@ -85,23 +81,23 @@ func (mgr *Manager) CameraCharacteristics(id CameraID) (Metadata, error) {
 	return md, nil
 }
 
-func (mgr *Manager) Open(id CameraID) (Device, error) {
+func (mgr *Manager) Open(id CameraID) (*Device, error) {
 
 	var (
-		dev Device
+		dev *Device
 		cbk = C.ACameraDevice_StateCallbacks{
 			context:        nil,
 			onDisconnected: (C.ACameraDevice_StateCallback)(unsafe.Pointer(C.onDisconnected)),
 			onError:        (C.ACameraDevice_ErrorStateCallback)(unsafe.Pointer(C.onError)),
 		}
 		cid = C.CString(string(id))
-		ok  = C.ACameraManager_openCamera(mgr.c, cid, &cbk, &dev.c)
+		ok  = C.ACameraManager_openCamera(mgr, cid, &cbk, &dev)
 		err = Status(ok)
 	)
 	defer C.free(unsafe.Pointer(cid))
 
 	if err != StatusOk {
-		return dev, err
+		return nil, err
 	}
 
 	return dev, nil
