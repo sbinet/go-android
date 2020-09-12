@@ -5,8 +5,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
+	_ "gioui.org/app/permission/camera"
+	_ "gioui.org/app/permission/storage"
 	"github.com/sbinet/go-android/camera"
 )
 
@@ -36,4 +39,36 @@ func main() {
 			log.Printf("entry: %#v", entry)
 		}
 	}
+}
+
+func backFacingCameraID(mgr *camera.Manager) (camera.CameraID, error) {
+	var (
+		back camera.CameraID
+		err  error
+	)
+
+	ids, err := mgr.CameraIDs()
+	if err != nil {
+		return back, err
+	}
+
+	for _, id := range ids {
+		md, err := mgr.CameraCharacteristics(id)
+		if err != nil {
+			return back, err
+		}
+		defer md.Delete()
+
+		entry, err := md.Entry(camera.LensFacing)
+		if err != nil {
+			return back, err
+		}
+
+		if entry.LensFacing() == camera.LensFacingBack {
+			back = id
+			return back, nil
+		}
+	}
+
+	return back, fmt.Errorf("could not find a camera facing back")
 }

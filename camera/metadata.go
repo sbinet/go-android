@@ -6,11 +6,20 @@ package camera
 
 //#include <camera/NdkCameraMetadata.h>
 //
+//static uint8_t
+//u8s_at(const uint8_t* arr, int i) {
+//	return arr[i];
+//}
+//
 //static uint32_t
 //u32s_at(const uint32_t* arr, int i) {
 //	return arr[i];
 //}
 import "C"
+
+import (
+	"unsafe"
+)
 
 type Metadata struct {
 	c *C.ACameraMetadata
@@ -59,6 +68,22 @@ func (md *Metadata) Entries() ([]MetadataEntry, error) {
 	return entries, nil
 }
 
+func (md *Metadata) Entry(tag uint32) (MetadataEntry, error) {
+	var (
+		entry MetadataEntry
+		ok    = C.ACameraMetadata_getConstEntry(md.c, C.uint32_t(tag), &entry.c)
+		err   = Status(ok)
+	)
+	if err != StatusOk {
+		return entry, err
+	}
+	return entry, nil
+}
+
 type MetadataEntry struct {
 	c C.ACameraMetadata_const_entry
+}
+
+func (mde MetadataEntry) LensFacing() int {
+	return int(C.u8s_at(*(**C.uint8_t)(unsafe.Pointer(&mde.c.data)), 0))
 }
